@@ -53,7 +53,6 @@ class CalculatorParser:
         """
         tokens = []
         split_expr = re.findall(f"[\d.]+|[+\-*/()]", equation)
-        print(split_expr)
         for i in split_expr:
             if NumberToken.is_valid(i):
                 tokens.append(NumberToken(i))
