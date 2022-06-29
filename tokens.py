@@ -37,7 +37,7 @@ class NumberToken(BaseToken):
 
     @classmethod
     def is_valid(cls, value: str) -> bool:
-        return True if re.match(r"^\d+\.?\d+$|^\d+$", value) else False
+        return True if re.match(r"^[1-9]\d*(\.?\d+)?$|^0(\.\d+)?$", value) else False
 
 
 class OperatorToken(BaseToken):
