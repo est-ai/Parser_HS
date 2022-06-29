@@ -20,3 +20,7 @@ class CalculateError(Exception):
 
 class ExistedData(Exception):
     pass
+
+
+class NotExistData(Exception):
+    pass
