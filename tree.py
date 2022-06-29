@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from typing import Union, List
-from operator import add, sub, mul, truediv
+from operator import sub, add, mul, truediv
+from typing import List, Union
 
-from tokens import BaseToken
 from exceptions import ExistedData
+from tokens import BaseToken
 
 
-class ParsedTree:
-    def __init__(self, data: BaseToken = None):
-        self.child = []
+class BasedParseTree:
+    def __init__(self, data: BaseToken):
         self.data = data
-        self.binary_calculate_map = {"+": add, "-": sub, "*": mul, "/": truediv}
+        self.left = None
+        self.right = None
 
     def print_tree(self, idx: int = 0) -> None:
         """
@@ -21,80 +21,81 @@ class ParsedTree:
 
         """
         print('  ' * idx, f"{idx}:  {self.data}")
-        for i in self.child:
-            i.print_tree(idx + 1)
+        if self.left:
+            self.left.print_tree(idx + 1)
 
-    def insert(self, token: Union[BaseToken, ParsedTree]) -> None:
-        """
-        Tree에 data 및 child를 추가하는 함수
-            - input type 이 BaseToken일 경우
-        Args:
-            token(Union[BaseToken, ParsedTree]): 추가할 Token or Tree
+        if self.right:
+            self.right.print_tree(idx + 1)
 
-        Raises:
-            ExistedData: ParsedTree의 data를 변경을 시도할 때
-            TypeError: Token의 type이 BaseToken이나 ParsedTree 가 아닌 경우
+    def insert(self, tree: BasedParseTree) -> None:
+        if not self.left:
+            self.left = tree
 
-        """
-        if type(token) is BaseToken:
-            if self.data is None:
-                raise ExistedData(f"Data already exists.")
-            self.data = token
-
-        elif type(token) is ParsedTree:
-            self.child.append(token)
+        elif not self.right:
+            self.right = tree
 
         else:
-            raise TypeError(f"param `token` must only have an BaseToken or ParsedTree type.")
+            raise ExistedData(f"left leaf and right leaf already exist.")
 
     def evaluate(self) -> float:
-        """
-        Tree를 traverse 하면서 계산하는 함수
-        Returns:
-            float: 수식의 계산값
-
-        """
-        equation_list = self.traverse()
-        return self.calculate(equation_list)
+        result = self.traverse()
+        return result[0]
 
     def traverse(self) -> List[Union[str, float]]:
-        """
-        ParsedTree를 분기하면서 return 값들을 계산하는 함수
-        Returns:
-            List[Union[str, float]]: Token의 value를 담은 리스트
-
-        """
         result = []
-        if self.child:
-            for ch in self.child:
-                value = ch.traverse()
-                if ch.data.token_type == "Negative":  # 음수처리
-                    value = [-value[1]]
+        if self.data.value:
+            result.append(self.data.value)
 
-                elif ch.data.token_type == "Term" and len(value) >= 3:    # 곱셈 / 나눗셈 처리
-                    value = [self.calculate(value)]
+        elif self.left:
+            result += self.left.traverse()
 
-                elif ch.data.token_type == "Expr" and len(value) >= 3:    # 덧셈 / 뺄셈 처리
-                    value = [self.calculate(value)]
+            if self.right:
+                result += self.right.traverse()
 
-                if value:
-                    result += value
+        return self.calculate(result)
 
-        else:
-            if self.data.value:
-                result.append(self.data.value)
-        return result
+    def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
+        return equation
 
-    def calculate(self, equation: List[Union[str, float]]) -> float:
-        """
-        Token의 Value를 담은 리스트를 받아 계산하는 하수
-        Args:
-            equation(List[Union[str, float]]: 계산이 필요한 숫자와 연산자를 담은 리스트
 
-        Returns:
-            float: 계산값
+class NegativeTree(BasedParseTree):
+    def calculate(self, equation: List[Union[str, float]]):
+        if len(equation) == 2:
+            return [-equation[1]]
+        raise ValueError('Left or right leaves do not exist.')
 
-        """
-        while len(equation) > 1:
-            equation[:3] = [self.binary_calculate_map[equation[1]](equation[0], equation[2])]
-        return equation[0]
+
+class IncrementsTree(BasedParseTree):
+    def __init__(self, data: BaseToken):
+        super().__init__(data)
+        self.binary_calculate_map = {"+": add, "-": sub}
+
+    def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
+        if len(equation) == 4:
+            return list(equation[0]) + [self.binary_calculate_map[equation[2]](equation[1], equation[3])]
+        return equation
+
+
+class ScalingsTree(BasedParseTree):
+    def __init__(self, data: BaseToken):
+        super().__init__(data)
+        self.binary_calculate_map = {"*": mul, "/": truediv}
+
+    def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
+        if len(equation) == 4:
+            return list(equation[0]) + [self.binary_calculate_map[equation[2]](equation[1], equation[3])]
+        return equation
+
+
+class TermTree(ScalingsTree):
+    def calculate(self, equation: List[Union[str, float]]):
+        if len(equation) == 3:
+            return [self.binary_calculate_map[equation[1]](equation[0], equation[2])]
+        return equation
+
+
+class ExpressionTree(IncrementsTree):
+    def calculate(self, equation: List[Union[str, float]]):
+        if len(equation) == 3:
+            return [self.binary_calculate_map[equation[1]](equation[0], equation[2])]
+        return equation
