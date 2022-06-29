@@ -11,7 +11,6 @@
   - [x] Number의 is_valid 함수 수정
   - [x] evaluate 함수에서 1 depth를 넘게 보지 않도록 하기
   - [x] tree를 operation 별로 분리하는 것을 추천
-
   - [x] 괄호 앞 음수 처리 완료
 
 ## 1. 설계방안 
@@ -21,12 +20,12 @@ Expr: Term Increments
 Increments: Increment Increments | ε
 Increment: AddOp Term
 
-Term: Factor Scalings
+Term: Factors Scalings
 Scalings: Scaling Scalings | ε
-Scaling: MulOp Factor
-Factor: Number | Enclosed | - Negative
+Scaling: MulOp Factors
+Factors: Factor | - Factor
+Factor: Number | Enclosed
 Enclosed: ( Expr )
-Negative: Number | Enclosed
 
 AddOp: + | -
 MulOp: * | /
