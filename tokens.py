@@ -4,7 +4,7 @@ from exceptions import InvalidToken
 
 
 class BaseToken:
-    def __init__(self, value: str):
+    def __init__(self, value: str = None):
         if not self.is_valid(value):
             raise InvalidToken(f"`{value}` is not {self.__class__}.")
         self.token_type = None
@@ -37,9 +37,7 @@ class NumberToken(BaseToken):
 
     @classmethod
     def is_valid(cls, value: str) -> bool:
-        if re.match('\d*(\.?\d*)$', value):
-            return True
-        return False
+        return True if re.match(r"^\d+\.?\d+$|^\d+$", value) else False
 
 
 class OperatorToken(BaseToken):
@@ -49,16 +47,10 @@ class OperatorToken(BaseToken):
 
     @classmethod
     def is_valid(cls, value: str) -> bool:
-        if value in ["+", "-", "*", "/"]:
-            return True
-        return False
+        return value in ["+", "-", "*", "/"]
 
     def select_type(self, value: str) -> str:
-        if value in ["+", "-"]:
-            return "AddOp"
-
-        else:
-            return "MulOp"
+        return "AddOp" if value in ["+", "-"] else "MulOp"
 
 
 class ParenToken(BaseToken):
@@ -68,21 +60,15 @@ class ParenToken(BaseToken):
 
     @classmethod
     def is_valid(cls, value: str) -> bool:
-        if value in ["(", ")"]:
-            return True
-        return False
+        return value in ["(", ")"]
 
     def select_type(self, value: str) -> str:
-        if value == "(":
-            return "LParen"
-
-        else:
-            return "RParen"
+        return "LParen" if value == "(" else "RParen"
 
 
 class NonTerminalToken(BaseToken):
-    def __init__(self, token_type: str, value: str = None):
-        super().__init__(value)
+    def __init__(self, token_type: str):
+        super().__init__()
         self.token_type = token_type
 
     @classmethod
@@ -98,4 +84,3 @@ class TerminalToken(BaseToken):
     @classmethod
     def is_valid(cls, value: str) -> bool:
         return True
-
