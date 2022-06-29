@@ -51,7 +51,7 @@ class BasedParseTree:
 
             if self.right:
                 result += self.right.traverse()
-
+        print(result)
         return self.calculate(result)
 
     def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
@@ -83,7 +83,10 @@ class ScalingsTree(BasedParseTree):
 
     def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
         if len(equation) == 4:
-            return list(equation[0]) + [self.binary_calculate_map[equation[2]](equation[1], equation[3])]
+            if equation[0] == "*":
+                return list(equation[0]) + [self.binary_calculate_map[equation[2]](equation[1], equation[3])]
+            else:
+                return list("*") + [self.binary_calculate_map[equation[2]](1 / equation[1], equation[3])]
         return equation
 
 
