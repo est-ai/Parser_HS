@@ -63,6 +63,11 @@ class FunctionalParserTest(TestCase):
         tree = self.parser.parse(equation)
         self.assertEqual(tree.evaluate(), eval(equation))
 
+    def test_negative_bracket(self):
+        equation = "-(2+3) / 2"
+        tree = self.parser.parse(equation)
+        self.assertEqual(tree.evaluate(), eval(equation))
+
     def test_invalid_syntax(self):
         equation = "(1 + 2"     # 닫는 괄호가 없는 경우
         self.assertRaises(RuleSyntaxError, lambda: self.parser.parse(equation))
