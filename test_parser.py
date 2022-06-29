@@ -44,7 +44,7 @@ class FunctionalParserTest(TestCase):
         self.assertEqual(tree.evaluate(), eval(equation))
 
     def test_bracket(self):
-        equation = "(1-2)*2/4"
+        equation = "(1-2)*2/4 * (-2)"
         tree = self.parser.parse(equation)
         self.assertEqual(tree.evaluate(), eval(equation))
 
