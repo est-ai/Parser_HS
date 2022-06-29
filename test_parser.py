@@ -20,7 +20,16 @@ class FunctionalParserTest(TestCase):
                           OperatorToken(value='-'), NumberToken(value='3')])
 
     def test_invalid_string(self):
-        equation = "1.2.2 + 3"
+        equation = "1.2.2 + 3"  # 소수점이 두개 이상
+        self.assertRaises(InvalidString, lambda: self.parser.tokenize(equation))
+
+        equation = "01 + 3"     # 0으로 시작되는 숫자
+        self.assertRaises(InvalidString, lambda: self.parser.tokenize(equation))
+
+        equation = "2. + 3"     # 소수점 뒷자리가 없는 경우
+        self.assertRaises(InvalidString, lambda: self.parser.tokenize(equation))
+
+        equation = ".32 + 3"     # 소수점 앞자리수가 없는 경우
         self.assertRaises(InvalidString, lambda: self.parser.tokenize(equation))
 
     def test_plus(self):
