@@ -106,18 +106,17 @@ class CalculatorParser:
         tree = BasedParseTree(NonTerminalToken("Factor"))
         if self.is_accept("Number"):
             tree.insert(self.advance())
-            return tree
 
         elif self.is_accept("LParen"):
             tree.insert(self.enclosed())
-            return tree
 
         elif self.is_accept("AddOp") and self.current_token.value == "-":
             tree.insert(self.negative())
-            return tree
 
         else:
             raise RuleSyntaxError(f"Should not arrive here {self.current_token}")
+
+        return tree
 
     def enclosed(self) -> BasedParseTree:
         self.advance()
@@ -140,6 +139,9 @@ class CalculatorParser:
 
         if self.is_accept("Number"):
             tree.insert(self.advance())
+
+        elif self.is_accept("LParen"):
+            tree.insert(self.enclosed())
 
         else:
             raise RuleSyntaxError(f"Should not arrive here {self.current_token}")
