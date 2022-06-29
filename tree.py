@@ -51,18 +51,17 @@ class BasedParseTree:
 
             if self.right:
                 result += self.right.traverse()
-        print(result)
         return self.calculate(result)
 
     def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
         return equation
 
 
-class NegativeTree(BasedParseTree):
-    def calculate(self, equation: List[Union[str, float]]):
+class FactorsTree(BasedParseTree):
+    def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
         if len(equation) == 2:
             return [-equation[1]]
-        raise ValueError('Left or right leaves do not exist.')
+        return equation
 
 
 class IncrementsTree(BasedParseTree):
@@ -91,14 +90,14 @@ class ScalingsTree(BasedParseTree):
 
 
 class TermTree(ScalingsTree):
-    def calculate(self, equation: List[Union[str, float]]):
+    def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
         if len(equation) == 3:
             return [self.binary_calculate_map[equation[1]](equation[0], equation[2])]
         return equation
 
 
 class ExpressionTree(IncrementsTree):
-    def calculate(self, equation: List[Union[str, float]]):
+    def calculate(self, equation: List[Union[str, float]]) -> List[Union[str, float]]:
         if len(equation) == 3:
             return [self.binary_calculate_map[equation[1]](equation[0], equation[2])]
         return equation
