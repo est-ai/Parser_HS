@@ -21,7 +21,7 @@ class FunctionalParserTest(TestCase):
 
     def test_invalid_string(self):
         equation = "1.2.2 + 3"
-        self.assertRaises(InvalidString, self.parser.tokenize(equation))
+        self.assertRaises(InvalidString, lambda: self.parser.tokenize(equation))
 
     def test_plus(self):
         equation = "1+1"
@@ -64,22 +64,23 @@ class FunctionalParserTest(TestCase):
         self.assertEqual(tree.evaluate(), eval(equation))
 
     def test_invalid_syntax(self):
-        equation = "(1 + 2"
+        equation = "(1 + 2"     # 닫는 괄호가 없는 경우
         self.assertRaises(RuleSyntaxError, lambda: self.parser.parse(equation))
 
-        equation = "1 - "
+        equation = "1 - "       # +,-의 피연산자가 부족한 경우
         self.assertRaises(RuleSyntaxError, lambda: self.parser.parse(equation))
 
-        equation = "1  2"
+        equation = "1  2"       # 연산자가 부족한 경우
         self.assertRaises(RuleSyntaxError, lambda: self.parser.parse(equation))
 
-        equation = "1 * 2)"
+        equation = "1 * 2)"     # 여는 괄호가 없는 경우
         self.assertRaises(RuleSyntaxError, lambda: self.parser.parse(equation))
 
-        equation = "1 / "
+        equation = "1 / "       # *, / 의 피연산자가 부족한 경우
         self.assertRaises(RuleSyntaxError, lambda: self.parser.parse(equation))
 
-        equation = "1 / x"
+        equation = "1 / x"      # 글자가 있는 수식
         self.assertRaises(RuleSyntaxError, lambda: self.parser.parse(equation))
 
-
+        equation = "1.2 % 2"    # +, -, *, / 를 제외한 다른 특수문자가 있는 수식
+        self.assertRaises(RuleSyntaxError, lambda: self.parser.parse(equation))
