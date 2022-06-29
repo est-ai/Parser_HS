@@ -1,16 +1,16 @@
 import re
 from typing import List
 
-from tree import ParsedTree
 from exceptions import InvalidString, RuleSyntaxError
 from tokens import BaseToken, NumberToken, OperatorToken, ParenToken, NonTerminalToken
+from tree import NegativeTree, BasedParseTree, ScalingsTree, IncrementsTree, TermTree, ExpressionTree
 
 
 class CalculatorParser:
     def __init__(self):
         self.tokens, self.current_token, self.next_token, self.equation = None, None, None, None
 
-    def parse(self, equation: str) -> ParsedTree:
+    def parse(self, equation: str) -> BasedParseTree:
         """
         수식 parsing 함수
         Args:
@@ -31,9 +31,8 @@ class CalculatorParser:
         """
         self.equation = equation
         self.tokens = iter(self.tokenize(equation))
-        self.current_token = None
+        self.current_token = next(self.tokens, None)
         self.next_token = next(self.tokens, None)
-        self._advance()
         result = self.expression()
         if self.current_token:
             raise RuleSyntaxError("The equation is not complete.")
@@ -54,7 +53,7 @@ class CalculatorParser:
         """
         tokens = []
         split_expr = re.findall(f"[\d.]+|[+\-*/()]", equation)
-
+        print(split_expr)
         for i in split_expr:
             if NumberToken.is_valid(i):
                 tokens.append(NumberToken(i))
@@ -69,9 +68,11 @@ class CalculatorParser:
                 raise InvalidString(f"`{i}` is an invalid string")
         return tokens
 
-    def _advance(self):
+    def advance(self) -> BasedParseTree:
         """ current, next token 을 다음 스텝으로 진행 함수 """
+        result = BasedParseTree(self.current_token)
         self.current_token, self.next_token = self.next_token, next(self.tokens, None)
+        return result
 
     def is_accept(self, token_type: str) -> bool:
         """
@@ -83,80 +84,71 @@ class CalculatorParser:
             bool: 일치하면 True, 불일치하면 False
 
         """
-        if self.current_token and self.current_token.token_type == token_type:
-            return True
-        return False
+        return self.current_token and self.current_token.token_type == token_type
 
-    def _expect(self, token_type: str) -> None:
-        """
-        반드시 필요한 token 이 존재하지만 그 token을 사용하지는 않을 때
-        확인하고 다음 token으로 넘어가는 함수 ex) RParen
-        Args:
-            token_type(str): Rule 이 요구하는 Token Type
-
-        """
-        if not self.is_accept(token_type):
-            if self.next_token:
-                current_type = self.next_token.token_type
-            else:
-                current_type = None
-            raise RuleSyntaxError(f"The Type of the next token must be {token_type}, "
-                                  f"but it is {current_type}")
-        self._advance()
-
-    def expression(self) -> ParsedTree:
+    def expression(self) -> BasedParseTree:
         """
         Expr -> Term Increments
         """
-        tree = ParsedTree(NonTerminalToken("Expr"))
+        tree = ExpressionTree(NonTerminalToken("Expr"))
         tree.insert(self.term())
         tree.insert(self.increments())
         return tree
 
-    def term(self) -> ParsedTree:
+    def term(self) -> BasedParseTree:
         """ Term -> Factor Scalings """
-        tree = ParsedTree(NonTerminalToken("Term"))
+        tree = TermTree(NonTerminalToken("Term"))
         tree.insert(self.factor())
         tree.insert(self.scalings())
         return tree
 
-    def factor(self) -> ParsedTree:
+    def factor(self) -> BasedParseTree:
         """ Factor -> Number | Enclosed | Negative """
-        tree = ParsedTree(NonTerminalToken("Factor"))
+        tree = BasedParseTree(NonTerminalToken("Factor"))
         if self.is_accept("Number"):
-            tree.insert(ParsedTree(self.current_token))
-            self._advance()
+            tree.insert(self.advance())
             return tree
 
         elif self.is_accept("LParen"):
-            self._advance()
             tree.insert(self.enclosed())
             return tree
 
-        elif self.is_accept("AddOp") and self.current_token.value == "-" and self.next_token.token_type == "Number":
+        elif self.is_accept("AddOp") and self.current_token.value == "-":
             tree.insert(self.negative())
             return tree
 
         else:
             raise RuleSyntaxError(f"Should not arrive here {self.current_token}")
 
-    def enclosed(self) -> ParsedTree:
+    def enclosed(self) -> BasedParseTree:
+        self.advance()
         expr_value = self.expression()
-        self._expect("RParen")
+        if self.is_accept("RParen"):
+            self.advance()
+
+        else:
+            raise RuleSyntaxError(f"Should not arrive here {self.current_token}")
         return expr_value
 
-    def negative(self) -> ParsedTree:
+    def negative(self) -> NegativeTree:
         """ Negative -> - Number"""
-        tree = ParsedTree(NonTerminalToken("Negative"))
-        tree.insert(ParsedTree(self.current_token))
-        self._advance()
-        tree.insert(ParsedTree(self.current_token))
-        self._advance()
+        tree = NegativeTree(NonTerminalToken("Negative"))
+        if self.is_accept("AddOp"):
+            tree.insert(self.advance())
+
+        else:
+            raise RuleSyntaxError(f"Should not arrive here {self.current_token}")
+
+        if self.is_accept("Number"):
+            tree.insert(self.advance())
+
+        else:
+            raise RuleSyntaxError(f"Should not arrive here {self.current_token}")
         return tree
 
-    def scalings(self) -> ParsedTree:
+    def scalings(self) -> BasedParseTree:
         """ Scalings -> Scaling Scalings | ε """
-        tree = ParsedTree(NonTerminalToken("Scalings"))
+        tree = ScalingsTree(NonTerminalToken("Scalings"))
         if self.is_accept("MulOp"):
             tree.insert(self.scaling())
             tree.insert(self.scalings())
@@ -166,16 +158,16 @@ class CalculatorParser:
 
         return tree
 
-    def scaling(self) -> ParsedTree:
+    def scaling(self) -> BasedParseTree:
         """ Scaling -> MulOp Factor"""
-        tree = ParsedTree(NonTerminalToken("Scaling"))
+        tree = BasedParseTree(NonTerminalToken("Scaling"))
         tree.insert(self.mul_operator())
         tree.insert(self.factor())
         return tree
 
-    def increments(self) -> ParsedTree:
+    def increments(self) -> BasedParseTree:
         """ Increments -> Increment Increments | ε """
-        tree = ParsedTree(NonTerminalToken("Increments"))
+        tree = IncrementsTree(NonTerminalToken("Increments"))
         if self.is_accept("AddOp"):
             tree.insert(self.increment())
             tree.insert(self.increments())
@@ -185,29 +177,25 @@ class CalculatorParser:
 
         return tree
 
-    def increment(self) -> ParsedTree:
+    def increment(self) -> BasedParseTree:
         """ Increment -> AddOp term """
-        tree = ParsedTree(NonTerminalToken("Increment"))
+        tree = BasedParseTree(NonTerminalToken("Increment"))
         tree.insert(self.add_operator())
         tree.insert(self.term())
         return tree
 
-    def add_operator(self) -> ParsedTree:
+    def add_operator(self) -> BasedParseTree:
         """ AddOp -> + | - """
         if self.is_accept("AddOp"):
-            result = ParsedTree(self.current_token)
-            self._advance()
-            return result
+            return self.advance()
 
         else:
             raise RuleSyntaxError(f"Should not arrive here {self.current_token}")
 
-    def mul_operator(self) -> ParsedTree:
+    def mul_operator(self) -> BasedParseTree:
         """ MulOp -> * | / """
         if self.is_accept("MulOp"):
-            result = ParsedTree(self.current_token)
-            self._advance()
-            return result
+            return self.advance()
 
         else:
             raise RuleSyntaxError(f"Should not arrive here {self.current_token}")
